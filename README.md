@@ -2,6 +2,8 @@
 
 Aplicación React/Vite con estilo común y navegación a ocho módulos, un ejemplo docente **funcional** de solicitudes de impresión 3D y conexión a PostgreSQL mediante Supabase Auth y RLS.
 
+[Abrir la demo de LABFIS](https://labfis-objetos-perdidos-g2-demo.shadykoi270.chatgpt.site/). La portada es pública. Para registrar o consultar objetos perdidos, inicia sesión con una cuenta habilitada como encargada en Supabase.
+
 ## Qué está implementado y qué no
 
 - ✅ Portada + menú de los 8 módulos LABFIS.
@@ -10,7 +12,7 @@ Aplicación React/Vite con estilo común y navegación a ocho módulos, un ejemp
 - ✅ Políticas RLS que aíslan los registros de cada cuenta.
 - ✅ Objetos perdidos incluye registro en recepción, confirmación de custodia y consulta de la evidencia original.
 - ✅ Objetos perdidos genera una etiqueta QR imprimible y permite actualizar la ubicación al abrir el expediente.
-- ⏳ Los demás módulos se muestran como plantillas de trabajo. El despliegue queda pendiente.
+- ⏳ Los demás módulos se muestran como plantillas de trabajo.
 
 ## Ruta rápida A: StackBlitz (sin instalaciones)
 
