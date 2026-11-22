@@ -1,0 +1,91 @@
+.objetos-perdidos .panel {
+  min-width: 0;
+}
+
+.objetos-perdidos .objetos-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.objetos-perdidos .objetos-acciones h3 {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.objetos-perdidos textarea {
+  width: 100%;
+  padding: 11px;
+  border: 1px solid #cfdcec;
+  border-radius: 8px;
+  color: #233b55;
+  font: inherit;
+  resize: vertical;
+}
+
+.objetos-perdidos textarea:focus {
+  outline: 2px solid #b9d4ff;
+  border-color: #1762e8;
+}
+
+.objetos-perdidos button:disabled {
+  opacity: .6;
+  cursor: wait;
+}
+
+.objetos-perdidos form > .muted {
+  margin: 0;
+}
+
+.objetos-datos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: 14px 24px;
+  font-size: 13px;
+}
+
+.objetos-datos dt {
+  color: #465975;
+  font-weight: 700;
+}
+
+.objetos-datos dd {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.objetos-observaciones {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.objetos-fotos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 148px), 1fr));
+  gap: 12px;
+}
+
+.objetos-fotos figure {
+  min-width: 0;
+  margin: 0;
+  padding: 8px;
+  border: 1px solid #e3eaf4;
+  border-radius: 8px;
+}
+
+.objetos-fotos img {
+  display: block;
+  width: 100%;
+  max-height: 260px;
+  background: #f5f8fe;
+  object-fit: contain;
+}
+
+.objetos-fotos figcaption {
+  margin: 8px 0;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}

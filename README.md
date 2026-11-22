@@ -8,8 +8,8 @@ Aplicación React/Vite con estilo común y navegación a ocho módulos, un ejemp
 - ✅ Ejemplo docente de impresión 3D: insertar y consultar solicitudes en **PostgreSQL** una vez configurado Supabase.
 - ✅ Formulario de registro e ingreso de usuarios por correo/contraseña; la confirmación de correo depende de configuración de Supabase.
 - ✅ Políticas RLS que aíslan los registros de cada cuenta.
-- ⏳ Los 8 módulos tienen **plantillas de trabajo**, no funcionalidades finales ni tablas propias todavía.
-- ⏳ Integración multiusuario por equipos, permisos de personal LABFIS y despliegue: no incluidos.
+- ✅ Objetos perdidos incluye registro en recepción, confirmación de custodia y consulta de la evidencia original.
+- ⏳ Los demás módulos se muestran como plantillas de trabajo. La generación y lectura de etiquetas QR y el despliegue quedan pendientes.
 
 ## Ruta rápida A: StackBlitz (sin instalaciones)
 
@@ -63,6 +63,13 @@ VITE_SUPABASE_PUBLISHABLE_KEY=TU_CLAVE_PUBLICABLE
 
 3. Prueba las políticas con las sesiones de esas cuentas. La cuenta de encargado debe poder registrar y consultar objetos y actualizar `ubicacion_custodia`. Con la cuenta común, las consultas deben devolver cero registros y los intentos de registro o confirmación deben ser rechazados. Usa el SQL Editor para verificar los registros como administrador.
 
+### Probar el registro y la custodia desde React
+
+1. Si todavía no tienes `.env.local`, créalo en PowerShell con `Copy-Item .env.example .env.local`. Completa la URL y la clave publicable del proyecto de pruebas en ese archivo.
+2. Ejecuta `npm.cmd install` si faltan las dependencias y luego `npm.cmd run dev`. Abre la URL que indique Vite, inicia sesión como encargado y entra a **Objetos perdidos**.
+3. Registra un objeto ficticio. Comprueba que el expediente lo muestre **En recepción**. Intenta confirmar la custodia con observaciones y sin foto para comprobar el rechazo. Luego adjunta una foto, revisa la vista previa y confirma.
+4. Verifica que el estado cambie a **En custodia** y que el expediente muestre la foto y las observaciones originales. Recarga la página y vuelve a abrir el expediente desde el listado. En Supabase, verifica la fila del objeto en **Table Editor** y la foto en el bucket privado de **Storage**.
+
 ### Contrato de custodia para React
 
 - El registro nace **En recepción**. Su `id` UUID identifica la futura etiqueta QR. El cliente puede proporcionar el UUID para reconocer el registro si necesita reintentar la solicitud.
@@ -115,4 +122,4 @@ Como estudiante quiero registrar una solicitud de impresión 3D, indicando descr
 5. Al menos dos pruebas manuales con evidencia.
 6. Código en repositorio sin credenciales privadas.
 
-> Este proyecto es un punto de partida académico. Los módulos están vacíos intencionalmente: deben construirse, probarse e integrarse. No usar con información institucional real.
+> Proyecto académico para pruebas con datos ficticios.
