@@ -36,7 +36,7 @@ export async function registrarObjeto(id, campos) {
 export async function consultarExpediente(objetoId) {
   const { data: objeto } = await supabase.from(TABLA_OBJETOS).select(CAMPOS_OBJETO)
     .eq('id', objetoId).maybeSingle().throwOnError()
-  if (!objeto) throw new Error('El objeto no está disponible para esta cuenta.')
+  if (!objeto) throw new Error('El objeto no existe o no está disponible para esta cuenta.')
   if (objeto.estado === EN_RECEPCION) return { objeto, evidencia: null, fotos: [] }
 
   const [{ data: evidencia }, { data: referencias }] = await Promise.all([
@@ -52,6 +52,13 @@ export async function consultarExpediente(objetoId) {
   const urlsPorRuta = new Map((enlaces ?? []).map(({ path, signedUrl }) => [path, signedUrl]))
   const fotos = rutas.map(ruta => ({ ruta, url: urlsPorRuta.get(ruta) }))
   return { objeto, evidencia, fotos }
+}
+
+export async function actualizarUbicacion(objetoId, ubicacion) {
+  const { data } = await supabase.from(TABLA_OBJETOS).update({ ubicacion_custodia: ubicacion })
+    .eq('id', objetoId).select('ubicacion_custodia').maybeSingle().throwOnError()
+  if (!data) throw new Error('El objeto no está disponible para actualizar.')
+  return data.ubicacion_custodia
 }
 
 export async function cargarFoto({ archivo, ruta }) {

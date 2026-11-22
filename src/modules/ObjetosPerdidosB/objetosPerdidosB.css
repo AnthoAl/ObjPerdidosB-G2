@@ -89,3 +89,85 @@
   font-size: 12px;
   overflow-wrap: anywhere;
 }
+
+.objetos-perdidos .objetos-editar-ubicacion {
+  margin-top: 18px;
+  max-width: 32rem;
+}
+
+.objetos-botones-ubicacion {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.objetos-etiqueta {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  width: min(100%, 18rem);
+  margin: 0;
+  padding: 12px;
+  border: 1px solid #cfdcec;
+  border-radius: 8px;
+  background: #fff;
+  color: #111;
+  text-align: center;
+}
+
+.objetos-etiqueta figcaption {
+  font-weight: 700;
+}
+
+.objetos-etiqueta svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.objetos-etiqueta code {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.objetos-enlace a {
+  color: #1762e8;
+  font-weight: 700;
+}
+
+@media print {
+  body:has(.objetos-etiqueta) :is(.sidebar, .topbar, .scrim, footer),
+  .objetos-perdidos:has(.objetos-etiqueta) > :not(.objetos-panel-etiqueta),
+  .objetos-panel-etiqueta > :not(.objetos-etiqueta) {
+    display: none !important;
+  }
+
+  body:has(.objetos-etiqueta),
+  body:has(.objetos-etiqueta) :is(.app, .main, .content, .objetos-perdidos, .objetos-panel-etiqueta) {
+    display: block;
+    min-height: 0;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: #fff;
+  }
+
+  .objetos-etiqueta {
+    width: 68mm;
+    padding: 3mm 2mm;
+    border: 1px dashed #555;
+    border-radius: 0;
+    break-inside: avoid;
+    font-size: 10pt;
+  }
+
+  .objetos-etiqueta svg {
+    width: 36mm;
+    height: 36mm;
+  }
+
+  .objetos-etiqueta code {
+    font-size: 8pt;
+  }
+}

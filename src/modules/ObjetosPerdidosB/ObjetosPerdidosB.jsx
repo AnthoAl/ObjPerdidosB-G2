@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { isConfigured } from '../../lib/supabase'
 import {
   EN_RECEPCION,
+  actualizarUbicacion,
   cargarFoto,
   confirmarCustodia,
   consultarExpediente,
@@ -9,6 +10,8 @@ import {
   listarObjetos,
   registrarObjeto,
 } from './datos'
+import EtiquetaObjeto from './EtiquetaObjeto'
+import { crearIdentificador, esIdentificadorObjeto } from './enlaceObjeto'
 import './objetosPerdidosB.css'
 
 const TIPOS_FOTO = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }
@@ -39,7 +42,11 @@ function useConsulta(consultar) {
     setIntento(anterior => anterior + 1)
   }
 
-  return { ...resultado, recargar }
+  function actualizarDatos(transformar) {
+    setResultado(anterior => ({ ...anterior, datos: transformar(anterior.datos) }))
+  }
+
+  return { ...resultado, recargar, actualizarDatos }
 }
 
 function Mensaje({ tipo, children }) {
@@ -68,7 +75,7 @@ function FormularioRegistro({ alGuardar }) {
     setGuardando(true)
     setError('')
     try {
-      idPendiente.current ??= crypto.randomUUID()
+      idPendiente.current ??= crearIdentificador()
       const objeto = await registrarObjeto(idPendiente.current, campos)
       alGuardar(objeto.id)
     } catch (fallo) {
@@ -157,7 +164,7 @@ function FormularioCustodia({ objetoId, usuarioId, guardando, setGuardando, alCo
     setError('')
     const nuevas = archivos.map(archivo => ({
       archivo,
-      ruta: `${objetoId}/${usuarioId}/${crypto.randomUUID()}.${TIPOS_FOTO[archivo.type]}`,
+      ruta: `${objetoId}/${usuarioId}/${crearIdentificador()}.${TIPOS_FOTO[archivo.type]}`,
     }))
     setFotos(anteriores => [...anteriores, ...nuevas])
   }
@@ -220,14 +227,63 @@ function FotoEnExpediente({ url, numero }) {
   </figure>
 }
 
-function Expediente({ objetoId, usuarioId, volver, alConfirmar }) {
+function FormularioUbicacion({ objeto, guardando, setGuardando, alGuardar }) {
+  const [editando, setEditando] = useState(false)
+  const [error, setError] = useState('')
+  const enCurso = useRef(false)
+
+  async function guardar(evento) {
+    evento.preventDefault()
+    if (enCurso.current) return
+    const ubicacion = new FormData(evento.currentTarget).get('ubicacion').trim()
+    if (!ubicacion) {
+      setError('Escribe una ubicación para guardar el cambio.')
+      return
+    }
+
+    enCurso.current = true
+    setGuardando(true)
+    setError('')
+    try {
+      const guardada = await actualizarUbicacion(objeto.id, ubicacion)
+      alGuardar(guardada)
+      setEditando(false)
+    } catch (fallo) {
+      setError(`No se pudo actualizar la ubicación. ${fallo.message}`)
+    } finally {
+      enCurso.current = false
+      setGuardando(false)
+    }
+  }
+
+  if (!editando) return <button className="secondary small" type="button" disabled={guardando}
+    onClick={() => { setError(''); setEditando(true) }}>Editar ubicación</button>
+
+  return <form onSubmit={guardar} className="objetos-editar-ubicacion">
+    <label>Nueva ubicación de custodia
+      <input name="ubicacion" defaultValue={objeto.ubicacion_custodia} maxLength={160} required disabled={guardando} />
+    </label>
+    <div className="objetos-botones-ubicacion">
+      <button type="submit" disabled={guardando}>{enCurso.current ? 'Guardando ubicación…' : 'Guardar ubicación'}</button>
+      <button className="secondary" type="button" disabled={guardando} onClick={() => setEditando(false)}>Cancelar</button>
+    </div>
+    <Mensaje tipo="error">{error}</Mensaje>
+  </form>
+}
+
+function Expediente({ objetoId, usuarioId, volver, alConfirmar, alActualizarUbicacion }) {
   const consultar = useCallback(() => consultarExpediente(objetoId), [objetoId])
-  const { datos, error, cargando, recargar } = useConsulta(consultar)
+  const { datos, error, cargando, recargar, actualizarDatos } = useConsulta(consultar)
   const [guardando, setGuardando] = useState(false)
 
   function custodiaGuardada() {
     alConfirmar()
     recargar()
+  }
+
+  function ubicacionGuardada(ubicacion) {
+    actualizarDatos(anterior => ({ ...anterior, objeto: { ...anterior.objeto, ubicacion_custodia: ubicacion } }))
+    alActualizarUbicacion()
   }
 
   return <>
@@ -248,13 +304,16 @@ function Expediente({ objetoId, usuarioId, volver, alConfirmar }) {
           <div><dt>Responsable del registro</dt><dd>{datos.objeto.registrado_por}</dd></div>
           <div><dt>Identificador</dt><dd>{datos.objeto.id}</dd></div>
         </dl>
+        <FormularioUbicacion objeto={datos.objeto} guardando={guardando} setGuardando={setGuardando}
+          alGuardar={ubicacionGuardada} />
       </section>
+      <EtiquetaObjeto objetoId={datos.objeto.id} guardando={guardando} />
       {datos.objeto.estado === EN_RECEPCION && <FormularioCustodia objetoId={objetoId} usuarioId={usuarioId}
         guardando={guardando} setGuardando={setGuardando} alConfirmar={custodiaGuardada} />}
       {datos.evidencia && <section className="panel">
         <div className="objetos-acciones">
           <h3>Evidencia original</h3>
-          <button className="secondary small" type="button" onClick={recargar}>Recargar evidencia</button>
+          <button className="secondary small" type="button" onClick={recargar} disabled={guardando}>Recargar evidencia</button>
         </div>
         <p className="objetos-observaciones">{datos.evidencia.observaciones}</p>
         <dl className="objetos-datos">
@@ -268,23 +327,29 @@ function Expediente({ objetoId, usuarioId, volver, alConfirmar }) {
   </>
 }
 
-function ModuloEncargado({ usuarioId }) {
-  const [objetoId, setObjetoId] = useState(null)
+function ModuloEncargado({ usuarioId, objetoId, abrirObjeto }) {
   const [exito, setExito] = useState('')
 
   function abrir(id) {
     setExito('')
-    setObjetoId(id)
+    abrirObjeto(id)
   }
 
+  if (objetoId !== null && !esIdentificadorObjeto(objetoId)) return <>
+    <Mensaje tipo="error">El enlace QR contiene un identificador inválido.</Mensaje>
+    <button className="secondary small" type="button" onClick={() => abrir(null)}>Volver al listado</button>
+  </>
+
+  const idNormalizado = objetoId?.toLowerCase()
   return <>
     <Mensaje tipo="success">{exito}</Mensaje>
-    {objetoId
-      ? <Expediente key={objetoId} objetoId={objetoId} usuarioId={usuarioId} volver={() => abrir(null)}
+    {idNormalizado
+      ? <Expediente key={idNormalizado} objetoId={idNormalizado} usuarioId={usuarioId} volver={() => abrir(null)}
+        alActualizarUbicacion={() => setExito('Ubicación de custodia actualizada.')}
         alConfirmar={() => setExito('Custodia confirmada. Se guardaron las fotos y las observaciones originales.')} />
       : <div className="split">
         <FormularioRegistro alGuardar={id => {
-          setObjetoId(id)
+          abrirObjeto(id)
           setExito('Objeto registrado. Ya puedes confirmar su custodia.')
         }} />
         <ListadoObjetos abrir={abrir} />
@@ -292,7 +357,7 @@ function ModuloEncargado({ usuarioId }) {
   </>
 }
 
-function AccesoEncargado({ usuarioId }) {
+function AccesoEncargado({ usuarioId, objetoId, abrirObjeto }) {
   const consultar = useCallback(() => esEncargado(usuarioId), [usuarioId])
   const { datos: permitido, cargando, error, recargar } = useConsulta(consultar)
 
@@ -305,10 +370,10 @@ function AccesoEncargado({ usuarioId }) {
     <Mensaje tipo="error">Esta cuenta necesita la habilitación de encargado para acceder al módulo.</Mensaje>
     <button className="secondary" type="button" onClick={recargar}>Comprobar acceso de nuevo</button>
   </>
-  return <ModuloEncargado usuarioId={usuarioId} />
+  return <ModuloEncargado usuarioId={usuarioId} objetoId={objetoId} abrirObjeto={abrirObjeto} />
 }
 
-export default function ObjetosPerdidosB({ session, checking }) {
+export default function ObjetosPerdidosB({ session, checking, objetoId, abrirObjeto }) {
   const usuarioId = session?.user?.id
   return <div className="module-page objetos-perdidos">
     <h2>Objetos perdidos</h2>
@@ -316,6 +381,7 @@ export default function ObjetosPerdidosB({ session, checking }) {
     {!isConfigured && <Mensaje>Configura la conexión con Supabase para registrar y consultar objetos.</Mensaje>}
     {isConfigured && checking && <Mensaje>Comprobando sesión…</Mensaje>}
     {isConfigured && !checking && !usuarioId && <Mensaje>Inicia sesión con tu cuenta de encargado para continuar.</Mensaje>}
-    {isConfigured && !checking && usuarioId && <AccesoEncargado key={usuarioId} usuarioId={usuarioId} />}
+    {isConfigured && !checking && usuarioId && <AccesoEncargado key={usuarioId} usuarioId={usuarioId}
+      objetoId={objetoId} abrirObjeto={abrirObjeto} />}
   </div>
 }

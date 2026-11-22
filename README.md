@@ -9,7 +9,8 @@ Aplicación React/Vite con estilo común y navegación a ocho módulos, un ejemp
 - ✅ Formulario de registro e ingreso de usuarios por correo/contraseña; la confirmación de correo depende de configuración de Supabase.
 - ✅ Políticas RLS que aíslan los registros de cada cuenta.
 - ✅ Objetos perdidos incluye registro en recepción, confirmación de custodia y consulta de la evidencia original.
-- ⏳ Los demás módulos se muestran como plantillas de trabajo. La generación y lectura de etiquetas QR y el despliegue quedan pendientes.
+- ✅ Objetos perdidos genera una etiqueta QR imprimible y permite actualizar la ubicación al abrir el expediente.
+- ⏳ Los demás módulos se muestran como plantillas de trabajo. El despliegue queda pendiente.
 
 ## Ruta rápida A: StackBlitz (sin instalaciones)
 
@@ -77,6 +78,14 @@ VITE_SUPABASE_PUBLISHABLE_KEY=TU_CLAVE_PUBLICABLE
 - Llama a `confirmar_custodia_objeto_perdido_b` con `p_objeto_id`, `p_observaciones` y `p_rutas`. La función verifica que existan las fotos cargadas, guarda la evidencia y cambia el estado a **En custodia** en una sola transacción. Repetir la llamada con la misma cuenta, observaciones y rutas devuelve la evidencia ya guardada.
 - Al confirmar, las fotos elegidas pasan a ser consultables por los encargados. Las cargas pendientes sólo son visibles para quien las subió mientras el objeto siga en recepción. Si se abandona una carga, la limpieza queda a cargo del administrador mediante Storage, tras verificar que la ruta carezca de referencia y que no haya una confirmación en curso.
 - Comprueba que las observaciones y las fotos confirmadas sigan disponibles al volver a consultar, que una nueva confirmación con notas distintas falle y que una sesión de encargado no pueda reemplazar ni borrar una foto del bucket.
+
+### Probar la etiqueta QR y editar la ubicación
+
+1. En **Objetos perdidos**, registra un objeto o abre un expediente existente. Pulsa **Imprimir etiqueta** para revisar la etiqueta en la vista previa o imprimirla. El QR se genera con `qrcode.react` y contiene la URL del expediente con el UUID del objeto.
+2. Escanea la etiqueta con el lector del teléfono o usa **Abrir enlace del QR**. Para probar desde el teléfono, genera la etiqueta tras abrir la aplicación en una dirección accesible desde ambos dispositivos. Usa la URL **Network** que muestra Vite si están en la misma red, o la URL HTTPS de la demo cuando esté desplegada. `localhost` apunta al dispositivo desde el que se abre el enlace.
+3. Inicia sesión como encargado si el navegador te lo pide. Comprueba que se abra el expediente correcto y que la misma URL funcione al recargar.
+4. Pulsa **Editar ubicación**, guarda una ubicación nueva y recarga el enlace. Verifica la ubicación en el expediente y la fila en `objetos_perdidos_b`. Las fotos y observaciones originales quedan disponibles en el expediente de solo lectura.
+5. Prueba con un identificador inválido, un UUID de un objeto inexistente y una cuenta común. En cada caso debe aparecer un mensaje y quedar bloqueada la edición.
 
 ## Con qué trabaja cada equipo
 
