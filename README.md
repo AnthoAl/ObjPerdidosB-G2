@@ -50,6 +50,27 @@ VITE_SUPABASE_PUBLISHABLE_KEY=TU_CLAVE_PUBLICABLE
 
 **Seguridad**: la clave publicable se usa en el cliente con RLS; nunca pegues `service_role`, `sb_secret_*`, contraseñas de BD ni JWT privados en variables `VITE_*`.
 
+## ObjetosPerdidosB en Supabase de pruebas
+
+1. En **SQL Editor**, ejecuta `supabase/02_objetos_perdidosB.sql` una vez. El script crea las tablas del módulo y el bucket privado `objetos-perdidos-b-evidencias` con un límite de 5 MiB por archivo para JPEG, PNG y WebP.
+2. En **Authentication → Users**, crea o localiza dos cuentas de prueba. El administrador habilita únicamente a la cuenta de encargado, reemplazando `UUID_DEL_ENCARGADO` por el ID de esa cuenta.
+
+   ```sql
+   insert into public.objetos_perdidos_b_encargados (usuario_id)
+   values ('UUID_DEL_ENCARGADO'::uuid)
+   on conflict (usuario_id) do nothing;
+   ```
+
+3. Prueba las políticas con las sesiones de esas cuentas. La cuenta de encargado debe poder registrar y consultar objetos y actualizar `ubicacion_custodia`. Con la cuenta común, las consultas deben devolver cero registros y los intentos de registro o confirmación deben ser rechazados. Usa el SQL Editor para verificar los registros como administrador.
+
+### Contrato de custodia para React
+
+- El registro nace **En recepción**. Su `id` UUID identifica la futura etiqueta QR. El cliente puede proporcionar el UUID para reconocer el registro si necesita reintentar la solicitud.
+- Un encargado carga de una a cinco fotos vía Supabase Storage con `upsert: false` y rutas `<objeto_uuid>/<usuario_uuid>/<foto_uuid>.<extensión>`. Se admiten las extensiones `jpg`, `jpeg`, `png` y `webp`.
+- Llama a `confirmar_custodia_objeto_perdido_b` con `p_objeto_id`, `p_observaciones` y `p_rutas`. La función verifica que existan las fotos cargadas, guarda la evidencia y cambia el estado a **En custodia** en una sola transacción. Repetir la llamada con la misma cuenta, observaciones y rutas devuelve la evidencia ya guardada.
+- Al confirmar, las fotos elegidas pasan a ser consultables por los encargados. Las cargas pendientes sólo son visibles para quien las subió mientras el objeto siga en recepción. Si se abandona una carga, la limpieza queda a cargo del administrador mediante Storage, tras verificar que la ruta carezca de referencia y que no haya una confirmación en curso.
+- Comprueba que las observaciones y las fotos confirmadas sigan disponibles al volver a consultar, que una nueva confirmación con notas distintas falle y que una sesión de encargado no pueda reemplazar ni borrar una foto del bucket.
+
 ## Con qué trabaja cada equipo
 
 | Equipo | Módulo | ID en menú |
