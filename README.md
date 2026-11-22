@@ -87,6 +87,8 @@ VITE_SUPABASE_PUBLISHABLE_KEY=TU_CLAVE_PUBLICABLE
 4. Pulsa **Editar ubicación**, guarda una ubicación nueva y recarga el enlace. Verifica la ubicación en el expediente y la fila en `objetos_perdidos_b`. Las fotos y observaciones originales quedan disponibles en el expediente de solo lectura.
 5. Prueba con un identificador inválido, un UUID de un objeto inexistente y una cuenta común. En cada caso debe aparecer un mensaje y quedar bloqueada la edición.
 
+La [guía de validación](docs/VALIDACION_OBJETOS_PERDIDOS.md) relaciona las pruebas con los criterios de aceptación y contiene el recorrido para la demo final.
+
 ## Con qué trabaja cada equipo
 
 | Equipo | Módulo | ID en menú |
