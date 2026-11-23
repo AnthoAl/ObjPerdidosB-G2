@@ -1,13 +1,20 @@
 # Validación del módulo Objetos perdidos
 
-El incremento de LABFIS cubre la custodia con evidencia original (HU-01) y la identificación por QR con actualización de ubicación (HU-03). Esta guía relaciona los criterios de aceptación con las pruebas y sirve para preparar la demostración final.
+El incremento de LABFIS cubre el registro en custodia con evidencia original (HU-01) y la identificación por QR con actualización de ubicación (HU-03).
 
-## Estado de las verificaciones
+## HU-01 · Registro en custodia con evidencia original
 
-- La compilación de la versión `745122e` pasó con `npm.cmd run build`. Esa versión se usó para publicar la [demo de LABFIS](https://labfis-objetos-perdidos-g2-demo.shadykoi270.chatgpt.site/).
-- En PostgreSQL 17 local pasaron 41 comprobaciones del esquema y sus permisos. En Supabase se verificaron cuatro tablas con RLS, seis políticas de PostgreSQL, seis de Storage y el bucket privado. La API real rechazó una consulta de objetos sin sesión con HTTP 401 y código `42501`.
-- En Chrome, con Supabase simulado, se probaron el registro, la validación de imágenes, el reintento de una carga parcial, la consulta de evidencia, la lectura del QR, la impresión y la edición de ubicación.
-- El 22 de noviembre de 2026 se completó la integración con el Supabase del equipo. El objeto ficticio `Calculadora de demostración Fase 5` quedó **En custodia** en `Armario de demostración B`, con una imagen en el bucket privado. Después de abrir el enlace del QR y recargar, la aplicación volvió a mostrar la ubicación actualizada, la imagen y las observaciones originales.
+Como encargado del laboratorio, quiero registrar el objeto que recibo físicamente junto con su evidencia para consultar después el estado en que ingresó a custodia.
+
+- **CA-01.** El formulario pide descripción, lugar y fecha del hallazgo, persona que reporta, de una a cinco fotografías y observaciones del estado físico. Con los datos válidos y las fotos cargadas, se abre el expediente **En custodia** con ubicación **Por asignar**.
+- **CA-02.** El expediente muestra las observaciones y fotos de solo lectura en **Evidencia original** inmediatamente después del registro y al volver a abrirlo.
+- **CA-03.** Si falta evidencia o falla una carga, el registro queda sin confirmar. Reintentar con los mismos datos y fotos guarda un solo expediente. Las fotos y observaciones guardadas se conservan al actualizar la ubicación.
+
+## Evidencias de la versión publicada inicialmente
+
+- La [demo de LABFIS](https://labfis-objetos-perdidos-g2-demo.shadykoi270.chatgpt.site/) se publicó con la versión `745122e`, que tenía un flujo de custodia en dos pasos. Para probar el flujo nuevo en Supabase, aplica la [migración de registro](../supabase/03_registro_con_evidencia.sql) antes de actualizar la demo.
+- En PostgreSQL 17 local pasaron 41 comprobaciones del esquema previo y sus permisos. En Supabase se verificaron cuatro tablas con RLS, seis políticas de PostgreSQL, seis de Storage y el bucket privado. La API real rechazó una consulta de objetos sin sesión con HTTP 401 y código `42501`.
+- En la prueba del 22 de noviembre de 2026 con el Supabase del equipo, la `Calculadora de demostración Fase 5` se guardó **En custodia** en `Armario de demostración B`. El expediente mantuvo la ubicación, la imagen y las observaciones al volver a abrirlo desde el enlace QR y recargarlo.
 
 ## Casos de aceptación
 
@@ -15,15 +22,16 @@ Usa una cuenta con rol de encargado y una cuenta común para las pruebas de acce
 
 Si el alta devuelve `email rate limit exceeded`, el administrador puede crear la cuenta de prueba en **Authentication → Users → Add user → Create new user** con **Auto confirm user?**. Ese formulario confirma solo esa cuenta y permite ingresar con la contraseña definida. [Límites de Supabase Auth](https://supabase.com/docs/guides/auth/rate-limits)
 
-| Caso | Criterio | Comprobación esperada | Resultado observado |
+| Caso | Criterio | Comprobación esperada | Estado de la verificación |
 | --- | --- | --- | --- |
-| CP-01 | HU-01 CA-01 | Confirmar la custodia con observaciones y al menos una foto. El mensaje de éxito aparece y el objeto pasa a **En custodia**. | Pasó con Supabase real. Se confirmó la custodia y se verificó que la referencia coincide con un archivo en Storage. |
-| CP-02 | HU-01 CA-01 | Intentar confirmar la custodia con observaciones y sin foto. El sistema rechaza el envío y el objeto sigue **En recepción**. | Pasó en la app conectada al Supabase real. También pasó en PostgreSQL local. |
-| CP-03 | HU-01 CA-02 y CA-03 | Recargar el expediente y comparar la foto y las observaciones con las originales. Verificar que el expediente solo permita consultar la evidencia y que los permisos impidan alterarla. | La evidencia se recuperó en el expediente de solo lectura al recargar con Supabase real. Los intentos de edición y borrado se rechazaron en PostgreSQL local. |
-| CP-04 | HU-03 CA-01 | Registrar el objeto, abrir **Imprimir etiqueta** y comprobar que el QR contiene el enlace con su UUID. | Se generó la etiqueta del objeto guardado en Supabase. La decodificación de dos etiquetas y la vista de impresión se probaron previamente en Chrome. |
-| CP-05 | HU-03 CA-02 | Escanear la etiqueta con el teléfono, iniciar sesión si corresponde y verificar que el expediente siga disponible al recargar el enlace. | El enlace de la prueba local abrió el expediente real y funcionó al recargar. En la demo pública, Chrome en modo móvil abrió el módulo y pidió iniciar sesión con una cuenta encargada antes y después de recargar. Queda pendiente escanear con un teléfono físico y comprobar el expediente tras iniciar sesión en la demo pública. |
-| CP-06 | HU-03 CA-03 | Editar la ubicación desde el expediente abierto con QR. Recargar y confirmar que persiste la nueva ubicación y que la evidencia sigue visible. | Pasó con Supabase real. El expediente y PostgreSQL mostraron `Armario de demostración B` y conservaron la evidencia original. |
-| CP-07 | HU-03 CA-02 y CA-03 | Abrir un QR inválido, un UUID inexistente y un enlace válido con una cuenta común. Comprobar el mensaje y que la edición quede bloqueada. | El QR inválido y el UUID inexistente fueron rechazados con Supabase real. La cuenta nueva quedó bloqueada en el módulo antes de habilitar su rol. El caso del enlace válido con cuenta común pasó en Chrome con Supabase simulado. |
+| CP-01 | HU-01 CA-01 y CA-02 | Completar el formulario con una o más fotos válidas. Comprobar que se abre en **En custodia**, con ubicación **Por asignar** y evidencia visible. | Verificado en Chrome con Supabase simulado y en PostgreSQL 17 local. Pendiente en el Supabase del equipo. |
+| CP-02 | HU-01 CA-01 y CA-03 | Intentar registrar con los demás campos completos y sin foto. Comprobar el mensaje de validación y la ausencia de un nuevo expediente. | Chrome mostró la validación. PostgreSQL local rechazó la llamada sin fotos y revirtió el alta. |
+| CP-03 | HU-01 CA-02 | Recargar el expediente y comparar las fotografías y las observaciones originales. Comprobar que la evidencia se puede consultar y que los permisos impiden alterarla. | Verificado en Chrome con Supabase simulado. En PostgreSQL local se verificaron los permisos de las observaciones y las fotos. |
+| CP-04 | HU-03 CA-01 | Abrir **Imprimir etiqueta** y comprobar que el QR contiene el enlace con el UUID del objeto. | Se abrió el enlace del nuevo expediente en Chrome. En la versión anterior también se verificaron la decodificación del QR y la vista de impresión. |
+| CP-05 | HU-03 CA-02 | Escanear la etiqueta con el teléfono, iniciar sesión y recargar el expediente. | Se probó el enlace y la solicitud de inicio de sesión en Chrome con vista móvil. Queda pendiente el escaneo físico. |
+| CP-06 | HU-03 CA-03 | Editar la ubicación desde el expediente abierto con QR. Recargar y confirmar que persisten la ubicación y la evidencia. | Se comprobó con el flujo nuevo en Chrome con Supabase simulado y con la versión anterior en el Supabase del equipo. |
+| CP-07 | HU-03 CA-02 y CA-03 | Abrir un QR inválido, un UUID inexistente y un enlace válido con una cuenta común. Comprobar el mensaje y el bloqueo de edición. | En la versión anterior se probaron enlaces inválidos y objetos inexistentes con Supabase real, y el enlace con cuenta común con Supabase simulado. |
+| CP-08 | HU-01 CA-03 | Simular un fallo al subir la segunda foto. Verificar que no aparezca un expediente incompleto y que, al reintentar, se guarde uno solo con ambas fotos. | Verificado en Chrome con Supabase simulado. En PostgreSQL local se comprobó que una foto faltante revierte el alta y que repetir el envío devuelve el mismo expediente. |
 
 Para la demo, verifica también la fila del objeto y su ubicación en **Table Editor** y la imagen en **Storage → objetos-perdidos-b-evidencias**. Para probar el QR desde otro dispositivo, abre el expediente en la [demo pública](https://labfis-objetos-perdidos-g2-demo.shadykoi270.chatgpt.site/) y genera la etiqueta desde allí. Escanéala con la cámara del teléfono, entra con una cuenta encargada, comprueba el estado y la ubicación y vuelve a cargar la página.
 
@@ -32,7 +40,7 @@ Para la demo, verifica también la fila del objeto y su ubicación en **Table Ed
 | Tiempo | Actividad |
 | --- | --- |
 | 1 min | Mostrar el listado y explicar el resultado de las dos funcionalidades. |
-| 4 min | Registrar el objeto, reproducir el rechazo sin foto, confirmar la custodia y recargar. Mostrar la etiqueta y abrir el enlace. Editar la ubicación y comprobar el cambio y la evidencia original. Mostrar el registro y la foto en Supabase. |
+| 4 min | Completar el formulario, reproducir el rechazo sin foto, adjuntarla y registrar. Mostrar **Evidencia original**, abrir el enlace del QR, editar la ubicación y recargar. Consultar el registro y la foto en Supabase. |
 | 2 min | Mostrar evidencias reales de la organización del trabajo y las prácticas ágiles que aplicó el equipo. |
 | 2 min | Comentar qué funcionó, una dificultad que resolvieron y una mejora para el próximo Sprint. |
 | 1 min | Cerrar con el resultado del incremento y dejar tiempo para la pregunta docente. |

@@ -10,7 +10,7 @@ Aplicación React/Vite con estilo común y navegación a ocho módulos, un ejemp
 - ✅ Ejemplo docente de impresión 3D: insertar y consultar solicitudes en **PostgreSQL** una vez configurado Supabase.
 - ✅ Formulario de registro e ingreso de usuarios por correo/contraseña; la confirmación de correo depende de configuración de Supabase.
 - ✅ Políticas RLS que aíslan los registros de cada cuenta.
-- ✅ Objetos perdidos incluye registro en recepción, confirmación de custodia y consulta de la evidencia original.
+- ✅ Objetos perdidos registra en custodia junto con las fotos y las observaciones originales.
 - ✅ Objetos perdidos genera una etiqueta QR imprimible y permite actualizar la ubicación al abrir el expediente.
 - ⏳ Los demás módulos se muestran como plantillas de trabajo.
 
@@ -55,8 +55,9 @@ VITE_SUPABASE_PUBLISHABLE_KEY=TU_CLAVE_PUBLICABLE
 
 ## ObjetosPerdidosB en Supabase de pruebas
 
-1. En **SQL Editor**, ejecuta `supabase/02_objetos_perdidosB.sql` una vez. El script crea las tablas del módulo y el bucket privado `objetos-perdidos-b-evidencias` con un límite de 5 MiB por archivo para JPEG, PNG y WebP.
-2. En **Authentication → Users**, crea o localiza dos cuentas de prueba. El administrador habilita únicamente a la cuenta de encargado, reemplazando `UUID_DEL_ENCARGADO` por el ID de esa cuenta.
+1. En un proyecto nuevo, ejecuta `supabase/02_objetos_perdidosB.sql` en **SQL Editor**. El script crea las tablas del módulo y el bucket privado `objetos-perdidos-b-evidencias` con un límite de 5 MiB por archivo para JPEG, PNG y WebP.
+2. Aplica `supabase/03_registro_con_evidencia.sql` una vez. Si el módulo ya existe, empieza aquí. Actualiza el frontend después de aplicar la migración.
+3. En **Authentication → Users**, crea o localiza dos cuentas de prueba. El administrador habilita únicamente a la cuenta de encargado, reemplazando `UUID_DEL_ENCARGADO` por el ID de esa cuenta.
 
    ```sql
    insert into public.objetos_perdidos_b_encargados (usuario_id)
@@ -64,22 +65,21 @@ VITE_SUPABASE_PUBLISHABLE_KEY=TU_CLAVE_PUBLICABLE
    on conflict (usuario_id) do nothing;
    ```
 
-3. Prueba las políticas con las sesiones de esas cuentas. La cuenta de encargado debe poder registrar y consultar objetos y actualizar `ubicacion_custodia`. Con la cuenta común, las consultas deben devolver cero registros y los intentos de registro o confirmación deben ser rechazados. Usa el SQL Editor para verificar los registros como administrador.
+4. Prueba las políticas con las sesiones de esas cuentas. La cuenta de encargado debe poder registrar y consultar objetos y actualizar `ubicacion_custodia`. Con la cuenta común, las consultas deben devolver cero registros y los intentos de registro deben ser rechazados. Usa el SQL Editor para verificar los registros como administrador.
 
 ### Probar el registro y la custodia desde React
 
 1. Si todavía no tienes `.env.local`, créalo en PowerShell con `Copy-Item .env.example .env.local`. Completa la URL y la clave publicable del proyecto de pruebas en ese archivo.
 2. Ejecuta `npm.cmd install` si faltan las dependencias y luego `npm.cmd run dev`. Abre la URL que indique Vite, inicia sesión como encargado y entra a **Objetos perdidos**.
-3. Registra un objeto ficticio. Comprueba que el expediente lo muestre **En recepción**. Intenta confirmar la custodia con observaciones y sin foto para comprobar el rechazo. Luego adjunta una foto, revisa la vista previa y confirma.
-4. Verifica que el estado cambie a **En custodia** y que el expediente muestre la foto y las observaciones originales. Recarga la página y vuelve a abrir el expediente desde el listado. En Supabase, verifica la fila del objeto en **Table Editor** y la foto en el bucket privado de **Storage**.
+3. Completa la descripción, el lugar y fecha del hallazgo, la persona que reporta y las observaciones. Usa datos ficticios. Prueba enviar sin foto y comprueba el rechazo. Adjunta una foto, revisa la vista previa y registra.
+4. Verifica que el expediente se abra **En custodia**, con ubicación **Por asignar** y la foto y las observaciones en **Evidencia original**. Recarga el expediente y comprueba que persisten. En Supabase, verifica la fila del objeto en **Table Editor** y la foto en el bucket privado de **Storage**.
 
-### Contrato de custodia para React
+### Contrato de registro para React
 
-- El registro nace **En recepción**. Su `id` UUID identifica la futura etiqueta QR. El cliente puede proporcionar el UUID para reconocer el registro si necesita reintentar la solicitud.
-- Un encargado carga de una a cinco fotos vía Supabase Storage con `upsert: false` y rutas `<objeto_uuid>/<usuario_uuid>/<foto_uuid>.<extensión>`. Se admiten las extensiones `jpg`, `jpeg`, `png` y `webp`.
-- Llama a `confirmar_custodia_objeto_perdido_b` con `p_objeto_id`, `p_observaciones` y `p_rutas`. La función verifica que existan las fotos cargadas, guarda la evidencia y cambia el estado a **En custodia** en una sola transacción. Repetir la llamada con la misma cuenta, observaciones y rutas devuelve la evidencia ya guardada.
-- Al confirmar, las fotos elegidas pasan a ser consultables por los encargados. Las cargas pendientes sólo son visibles para quien las subió mientras el objeto siga en recepción. Si se abandona una carga, la limpieza queda a cargo del administrador mediante Storage, tras verificar que la ruta carezca de referencia y que no haya una confirmación en curso.
-- Comprueba que las observaciones y las fotos confirmadas sigan disponibles al volver a consultar, que una nueva confirmación con notas distintas falle y que una sesión de encargado no pueda reemplazar ni borrar una foto del bucket.
+- El cliente asigna un UUID para identificar el expediente y reintentar el registro. Un encargado carga de una a cinco fotos en Supabase Storage con `upsert: false` y rutas `<objeto_uuid>/<usuario_uuid>/<foto_uuid>.<extensión>`. Se admiten las extensiones `jpg`, `jpeg`, `png` y `webp`.
+- La función `registrar_objeto_perdido_b` verifica las cargas y guarda el objeto, las observaciones y las referencias de fotos en una sola transacción. El alta termina **En custodia**, con la ubicación por asignar. Repetir el envío con el mismo UUID, cuenta, datos y fotos devuelve el mismo identificador.
+- Los encargados consultan las fotos registradas mediante enlaces temporales. Las cargas pendientes son visibles para la cuenta que las hizo mientras el expediente no esté en custodia. Si se abandona una carga, el administrador puede limpiarla mediante Storage tras comprobar que la ruta carezca de referencia y que no haya un registro en curso.
+- Los expedientes antiguos muestran **Sin dato registrado** cuando falta el nombre de quien reportó, y **Sin evidencia registrada** si el objeto sigue en recepción sin fotos ni observaciones.
 
 ### Probar la etiqueta QR y editar la ubicación
 
